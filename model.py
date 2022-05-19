@@ -26,6 +26,7 @@ import numpy as np
 import pandas as pd
 import pickle
 import json
+from sklearn.preprocessing import StandardScaler
 
 def _preprocess_data(data):
     """Private helper function to preprocess data for model prediction.
@@ -58,7 +59,34 @@ def _preprocess_data(data):
     # ---------------------------------------------------------------
 
     # ----------- Replace this code with your own preprocessing steps --------
-    predict_vector = feature_vector_df[['Madrid_wind_speed','Bilbao_rain_1h','Valencia_wind_speed']]
+    #predict_vector = feature_vector_df[['Madrid_wind_speed','Bilbao_rain_1h','Valencia_wind_speed']]
+
+    # Data Cleaning
+    feature_vector_df['Valencia_pressure'] = feature_vector_df['Valencia_pressure'].fillna(1015.0)
+
+    feature_vector_df['Valencia_wind_deg'] = feature_vector_df['Valencia_wind_deg'].str.extract('(\d+)')
+    feature_vector_df['Valencia_wind_deg'] = pd.to_numeric(feature_vector_df['Valencia_wind_deg'])
+
+    feature_vector_df['Seville_pressure'] = feature_vector_df['Seville_pressure'].str.extract('(\d+)')
+    feature_vector_df['Seville_pressure'] = pd.to_numeric(feature_vector_df['Seville_pressure'])
+
+    feature_vector_df = feature_vector_df.drop(['Unnamed: 0'], axis=1)
+
+    # Feature Engineering
+    feature_vector_df['time'] = pd.to_datetime(feature_vector_df['time'])
+    feature_vector_df.insert(1, 'year', feature_vector_df['time'].dt.year)
+    feature_vector_df.insert(2, 'month', feature_vector_df['time'].dt.month)
+    feature_vector_df.insert(3, 'day', feature_vector_df['time'].dt.day)
+    feature_vector_df.insert(4, 'hour', feature_vector_df['time'].dt.hour)
+    feature_vector_df.insert(5, 'week', feature_vector_df['time'].dt.isocalendar().week)
+    feature_vector_df.insert(6, 'weekday', feature_vector_df['time'].dt.weekday + 1)
+    feature_vector_df = feature_vector_df.drop(['time'], axis=1)
+
+    # Feature transformation
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(feature_vector_df)
+    predict_vector = pd.DataFrame(X_scaled, columns=feature_vector_df.columns)
+
     # ------------------------------------------------------------------------
 
     return predict_vector
